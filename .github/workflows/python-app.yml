@@ -8,9 +8,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -25,40 +22,22 @@ jobs:
           git zip unzip openjdk-17-jdk \
           autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev \
-          libffi-dev libssl-dev \
-          wget curl
+          libffi-dev libssl-dev cmake
 
     # ─────────────────────────────────────────────
-    # Install Android command line tools
-    # ─────────────────────────────────────────────
-    - name: Setup Android SDK
-      run: |
-        mkdir -p $ANDROID_HOME/cmdline-tools
-        cd $ANDROID_HOME/cmdline-tools
-
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
-        unzip tools.zip
-        mv cmdline-tools latest
-
-        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-    # ─────────────────────────────────────────────
-    # Install Python + buildozer
+    # Install Python dependencies
     # ─────────────────────────────────────────────
     - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip
-        pip install buildozer cython
+        pip install buildozer cython virtualenv
 
     # ─────────────────────────────────────────────
-    # Build APK
+    # Build APK (Let Buildozer do its thing)
     # ─────────────────────────────────────────────
     - name: Build APK
       run: |
-        buildozer android debug
+        yes | buildozer android debug
 
     # ─────────────────────────────────────────────
     # Upload artifact
@@ -68,3 +47,4 @@ jobs:
       with:
         name: ytmusic-apk
         path: bin/*.apk
+        
