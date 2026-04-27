@@ -24,7 +24,7 @@ jobs:
           zlib1g-dev libncurses6 libncursesw6 \
           libncurses5-dev libncursesw5-dev \
           cmake libffi-dev libssl-dev \
-          gettext lld m4 python3-dev
+          gettext lld m4 python3-dev libltdl-dev
 
     # ─────────────────────────────────────────────
     # Install Python dependencies
@@ -35,10 +35,16 @@ jobs:
         pip install buildozer cython virtualenv
 
     # ─────────────────────────────────────────────
-    # Build APK
+    # Build APK (With Environment Cleanup)
     # ─────────────────────────────────────────────
     - name: Build APK
       run: |
+        # Unset system Android paths to prevent Buildozer from getting confused
+        unset ANDROID_HOME
+        unset ANDROID_SDK_ROOT
+        unset ANDROID_NDK_HOME
+        unset ANDROID_NDK_ROOT
+        
         yes | buildozer android debug
 
     # ─────────────────────────────────────────────
