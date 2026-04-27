@@ -20,9 +20,10 @@ jobs:
         sudo apt update
         sudo apt install -y \
           git zip unzip openjdk-17-jdk \
-          autoconf libtool pkg-config \
-          zlib1g-dev libncurses5-dev \
-          libffi-dev libssl-dev cmake
+          autoconf automake libtool pkg-config \
+          zlib1g-dev libncurses5-dev libncursesw5-dev \
+          libtinfo5 cmake libffi-dev libssl-dev \
+          gettext lld m4
 
     # ─────────────────────────────────────────────
     # Install Python dependencies
@@ -47,4 +48,3 @@ jobs:
       with:
         name: ytmusic-apk
         path: bin/*.apk
-        
