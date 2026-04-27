@@ -27,7 +27,7 @@ jobs:
               gettext lld m4 libltdl-dev \
               libxml2-dev libxslt1-dev patch libsqlite3-dev
         
-          # The Secret Sauce: Tell the system that 'python3.10' is just 'python'
+            # The Secret Sauce: Tell the system that 'python3.10' is just 'python'
             sudo ln -sf $(which python) /usr/local/bin/python3.10
 
     # ─────────────────────────────────────────────
