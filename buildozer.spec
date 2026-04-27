@@ -16,6 +16,7 @@ source.include_exts = py,png,jpg,kv,atlas
 android.minapi = 24
 android.api = 33
 android.ndk = 25b
+android.add_src = ffmpeg
 
 # ─── Permissions (only what actually works) ──────────────
 android.permissions = INTERNET,FOREGROUND_SERVICE,WAKE_LOCK
