@@ -22,7 +22,7 @@ android.add_src = ffmpeg
 android.permissions = INTERNET,FOREGROUND_SERVICE,WAKE_LOCK
 
 # ─── Python requirements ─────────────────────────────────
-requirements = python3,kivy==2.3.0,requests,beautifulsoup4,lxml,yt_dlp,certifi,urllib3,idna,charset-normalizer
+requirements = python3==3.10.11,kivy==2.3.0,requests,beautifulsoup4,lxml,yt_dlp,certifi,urllib3,idna,charset-normalizer
 
 # ─── Architecture ────────────────────────────────────────
 android.arch = arm64-v8a
