@@ -12,31 +12,36 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
     # ─────────────────────────────────────────────
-    # Install system dependencies
+    # Install system dependencies (The Updated Version)
     # ─────────────────────────────────────────────
-        - name: Install system dependencies
-          run: |
-            sudo apt update
-            sudo apt install -y \
-              git zip unzip openjdk-17-jdk \
-              autoconf automake libtool libtool-bin pkg-config \
-              zlib1g-dev libncurses6 libncursesw6 \
-              libncurses5-dev libncursesw5-dev \
-              cmake libffi-dev libssl-dev \
-              gettext lld m4 libltdl-dev \
-              libxml2-dev libxslt1-dev patch libsqlite3-dev
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git zip unzip openjdk-17-jdk \
+          autoconf automake libtool libtool-bin pkg-config \
+          zlib1g-dev libncurses6 libncursesw6 \
+          libncurses5-dev libncursesw5-dev \
+          cmake libffi-dev libssl-dev \
+          gettext lld m4 libltdl-dev \
+          libxml2-dev libxslt1-dev patch libsqlite3-dev
         
-            # The Secret Sauce: Tell the system that 'python3.10' is just 'python'
-            sudo ln -sf $(which python) /usr/local/bin/python3.10
+        # The Secret Sauce: Tell the system that 'python3.10' is just 'python'
+        sudo ln -sf $(which python) /usr/local/bin/python3.10
 
     # ─────────────────────────────────────────────
     # Install Python dependencies
     # ─────────────────────────────────────────────
     - name: Install Python dependencies
       run: |
-        python3 -m pip install --upgrade pip
-        pip install buildozer cython virtualenv
+        python -m pip install --upgrade pip
+        pip install buildozer cython==0.29.33 virtualenv
 
     # ─────────────────────────────────────────────
     # Build APK (With Environment Cleanup)
