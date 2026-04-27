@@ -8,10 +8,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v4
 
+    # ─────────────────────────────────────────────
+    # Install system dependencies
+    # ─────────────────────────────────────────────
     - name: Install system dependencies
       run: |
         sudo apt update
@@ -19,17 +25,44 @@ jobs:
           git zip unzip openjdk-17-jdk \
           autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev \
-          libffi-dev libssl-dev
+          libffi-dev libssl-dev \
+          wget curl
 
-    - name: Install Python deps
+    # ─────────────────────────────────────────────
+    # Install Android command line tools
+    # ─────────────────────────────────────────────
+    - name: Setup Android SDK
+      run: |
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
+        unzip tools.zip
+        mv cmdline-tools latest
+
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+    # ─────────────────────────────────────────────
+    # Install Python + buildozer
+    # ─────────────────────────────────────────────
+    - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip
         pip install buildozer cython
 
+    # ─────────────────────────────────────────────
+    # Build APK
+    # ─────────────────────────────────────────────
     - name: Build APK
       run: |
         buildozer android debug
 
+    # ─────────────────────────────────────────────
+    # Upload artifact
+    # ─────────────────────────────────────────────
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
