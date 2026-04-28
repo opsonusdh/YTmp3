@@ -25,7 +25,7 @@ android.permissions = INTERNET,FOREGROUND_SERVICE,WAKE_LOCK
 # REMOVED: lxml  — we never import it; html.parser is built-in.
 #          lxml needs C compilation which is finicky in p4a and unnecessary.
 requirements = \
-    python3==3.10.11,\
+    python3,\
     kivy==2.3.0,\
     requests,\
     beautifulsoup4,\
