@@ -99,7 +99,7 @@ def _get_ffmpeg_path() -> str:
             from android.storage import app_storage_path  # type: ignore
             return os.path.join(app_storage_path(), 'ffmpeg')
         except Exception:
-            pass
+            return "/storage/emulated/0/Ytmp3/"
     return 'ffmpeg'   # system PATH on desktop / safe fallback on Android
 
 
@@ -173,8 +173,10 @@ class YouTubeSearcher:
             'noplaylist':    True,
             'ignoreerrors':  True,
             'logger':        SilentLogger(),
-            'ffmpeg_location': FFMPEG_PATH,
-            'format':        'bestaudio[ext=m4a]/bestaudio',
+            # extract_flat: only fetch playlist/search metadata, do NOT do
+            # a full per-video extraction. This avoids the JS runtime being
+            # invoked for every search result — much faster and no JS errors.
+            'extract_flat':  'in_playlist',
         }
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
@@ -309,55 +311,60 @@ class AudioPlayer:
         threading.Thread(target=self._pipeline, args=(track,), daemon=True).start()
 
     def _pipeline(self, track: dict):
-        url        = track.get('url', '')
-        stream_url = self._get_stream_url(url)
+        url = track.get('url', '')
+        audio_file = self._get_audio_file(url)
 
         if self._stop_ev.is_set():
             return
-        if not stream_url:
+        if not audio_file:
             self._notify_error(f'Could not extract audio: {track.get("title")}')
             return
 
-        Clock.schedule_once(lambda dt: self._play_url(stream_url), 0)
+        Clock.schedule_once(lambda dt: self._play_url(audio_file), 0)
 
-    def _get_stream_url(self, url: str) -> str:
+        
+
+    def _get_audio_file(self, url: str) -> str:
         opts = {
-            'format':        'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best',
-            'quiet':         True,
-            'no_warnings':   True,
-            'skip_download': True,
-            'logger':        SilentLogger(),
+            'quiet': True,
+            'no_warnings': True,
+            'noplaylist': True,
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(CACHE_DIR, '%(title)s.%(ext)s'),
             'ffmpeg_location': FFMPEG_PATH,
-            'extractor_args': {
-                'youtube': {'player_client': ['android', 'web']}
-            },
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '0',
+            }],
+            'logger': SilentLogger(),
         }
+
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
+                info = ydl.extract_info(url, download=True)
+                if not info:
+                    return ''
 
-            for fmt in reversed(info.get('formats') or []):
-                if (fmt.get('acodec') not in (None, 'none') and
-                        fmt.get('vcodec') in (None, 'none', '') and
-                        fmt.get('url')):
-                    return fmt['url']
-            return info.get('url', '')
+                downloaded_file = ydl.prepare_filename(info)
+                base, _ = os.path.splitext(downloaded_file)
+                return base + '.mp3'
+
         except Exception as exc:
-            print(f'[Player] stream extraction error: {exc}')
+            print(f'[Player] audio download error: {exc}')
             traceback.print_exc()
             return ''
-
-    def _play_url(self, url: str):
-        """Must run on Kivy main thread."""
+        
+    def _play_url(self, path: str):
         if self._stop_ev.is_set():
             return
         self._release_sound()
-
-        snd = SoundLoader.load(url)
+    
+        snd = SoundLoader.load(path)
         if not snd:
-            self._notify_error('SoundLoader could not open stream')
+            self._notify_error('SoundLoader could not open file')
             return
-
+    
         self._sound = snd
         snd.bind(on_stop=self._on_sound_stop)
         snd.play()
