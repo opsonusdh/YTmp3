@@ -48,6 +48,7 @@ import tempfile
 import threading
 import time
 import traceback
+import io
 
 # ─────────────────────────────────────────────
 #  THIRD-PARTY
@@ -312,19 +313,59 @@ class AudioPlayer:
 
     def _pipeline(self, track: dict):
         url = track.get('url', '')
-        audio_file = self._get_audio_file(url)
+        audio_file, logs = self._get_audio_file(url)
 
         if self._stop_ev.is_set():
             return
         if not audio_file:
-            self._notify_error(f'Could not extract audio: {track.get("title")}')
+            self._notify_error(f'Could not extract audio: {track.get("title")}\n\n{logs}')
             return
 
         Clock.schedule_once(lambda dt: self._play_url(audio_file), 0)
 
         
 
-    def _get_audio_file(self, url: str) -> str:
+#    def _get_audio_file(self, url: str) -> str:
+#        opts = {
+#            'quiet': True,
+#            'no_warnings': True,
+#            'noplaylist': True,
+#            'format': 'bestaudio/best',
+#            'outtmpl': os.path.join(CACHE_DIR, '%(title)s.%(ext)s'),
+#            'ffmpeg_location': FFMPEG_PATH,
+#            'postprocessors': [{
+#                'key': 'FFmpegExtractAudio',
+#                'preferredcodec': 'mp3',
+#                'preferredquality': '0',
+#            }],
+#            'logger': SilentLogger(),
+#        }
+
+#        try:
+#            with yt_dlp.YoutubeDL(opts) as ydl:
+#                info = ydl.extract_info(url, download=True)
+#                if not info:
+#                    return ''
+
+#                downloaded_file = ydl.prepare_filename(info)
+#                base, _ = os.path.splitext(downloaded_file)
+#                return base + '.mp3'
+
+#        except Exception as exc:
+#            print(f'[Player] audio download error: {exc}')
+#            traceback.print_exc()
+#            return ''
+            
+
+
+    def _get_audio_file(self, url: str):
+        log_buffer = io.StringIO()
+
+        class BufferLogger:
+            def debug(self, msg): pass
+            def warning(self, msg): log_buffer.write(f"[WARN] {msg}\n")
+            def error(self, msg): log_buffer.write(f"[ERR] {msg}\n")
+
         opts = {
             'quiet': True,
             'no_warnings': True,
@@ -337,23 +378,22 @@ class AudioPlayer:
                 'preferredcodec': 'mp3',
                 'preferredquality': '0',
             }],
-            'logger': SilentLogger(),
+            'logger': BufferLogger(),
         }
 
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                if not info:
-                    return ''
 
-                downloaded_file = ydl.prepare_filename(info)
-                base, _ = os.path.splitext(downloaded_file)
-                return base + '.mp3'
+            file = ydl.prepare_filename(info)
+            mp3 = os.path.splitext(file)[0] + ".mp3"
 
-        except Exception as exc:
-            print(f'[Player] audio download error: {exc}')
-            traceback.print_exc()
-            return ''
+            return mp3, log_buffer.getvalue()
+
+        except Exception as e:
+            log_buffer.write(str(e) + "\n")
+            return '', log_buffer.getvalue()
+        
         
     def _play_url(self, path: str):
         if self._stop_ev.is_set():
