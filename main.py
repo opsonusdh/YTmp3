@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+import!/usr/bin/env python3
 """
 YTMusicPlayer — Background YouTube music player for Android
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -359,6 +359,11 @@ class AudioPlayer:
 
 
     def _get_audio_file(self, url: str):
+        """
+        Extract direct CDN audio stream URL without ffmpeg.
+        yt-dlp fetches pre-muxed m4a/audio streams from YouTube's CDN.
+        Android MediaPlayer streams natively — no conversion needed.
+        """
         log_buffer = io.StringIO()
 
         class BufferLogger:
@@ -370,28 +375,30 @@ class AudioPlayer:
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True,
-            'format': 'bestaudio/best',
-            'outtmpl': os.path.join(CACHE_DIR, '%(title)s.%(ext)s'),
-            'ffmpeg_location': FFMPEG_PATH,
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '0',
-            }],
+            'format': 'bestaudio',  # ← Get best audio (m4a/audio stream)
+            'skip_download': True,   # ← Don't download, just extract URL
             'logger': BufferLogger(),
         }
 
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-
-            file = ydl.prepare_filename(info)
-            mp3 = os.path.splitext(file)[0] + ".mp3"
-
-            return mp3, log_buffer.getvalue()
+                info = ydl.extract_info(url, download=False)
+        
+            if not info:
+                log_buffer.write("Failed to extract info\n")
+                return '', log_buffer.getvalue()
+        
+            # Get the direct CDN stream URL
+            audio_url = info.get('url')
+            if not audio_url:
+                log_buffer.write("No audio URL in response\n")
+                return '', log_buffer.getvalue()
+        
+            return audio_url, log_buffer.getvalue()
 
         except Exception as e:
-            log_buffer.write(str(e) + "\n")
+            log_buffer.write(f"Error extracting stream: {str(e)}\n")
+            traceback.print_exc()
             return '', log_buffer.getvalue()
         
         
